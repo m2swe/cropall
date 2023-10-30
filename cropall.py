@@ -1,8 +1,8 @@
-#! /usr/bin/env python2
+#! /usr/bin/env python3
 
 #README:
 #this script needs
-#1.  python 2.7 (or at least < 3) https://www.python.org/downloads/release/python-278/
+#1.  python 3 (or at least < 3) https://www.python.org/downloads/release/python-278/
 #		also python-tk and python-imaging-tk
 #2.  imagemagick http://www.imagemagick.org/script/binary-releases.php#windows
 #3.  both added to PATH http://stackoverflow.com/questions/6318156/adding-python-path-on-windows-7
@@ -15,10 +15,10 @@
 #you may change the below self-explanatory variables
 
 #select input images from current directory
-image_extensions = [".jpg", ".png", ".bmp"]
+image_extensions = [".jpg", ".png", ".bmp", ".tiff"]
 
 #directory to put output images (created automatically in current directory)
-out_directory = "crops"
+out_directory = "crops"	
 
 #after cropping, will resize down until the image firs in these dimensions. set to 0 to disable
 resize_width = 1920
@@ -56,53 +56,60 @@ def pause():
 
 try:
 	import os, sys
-	print sys.version
+	print(sys.version)
+
+	import time
 
 	from distutils import spawn
 	convert_path = spawn.find_executable("convert")
 	if convert_path:
-		print "Found 'convert' at", convert_path
+		print("Found 'convert' at", convert_path)
 	else:
 		raise EnvironmentError("Could not find ImageMagick's 'convert'. Is it installed and in PATH?")
 
-	print "Importing libraries..."
+	print("Importing libraries...")
 
-	print "> Tkinter"
-	import Tkinter
-	from Tkinter import *
-	from Tkinter import Frame
-	print "> subprocess"
+	import tkinter as tk
+
+	from tkinter import ttk
+
+	print("> Tkinter")
+	import tkinter
+	from tkinter import *
+	from tkinter import Frame
+	print("> subprocess")
 	import subprocess
-	print "> tkFileDialog"
-	import tkFileDialog
-	print "> shutil"
+	print("> tkinter.filedialog")
+	import tkinter.filedialog
+	print("> shutil")
 	import shutil
-	print "> Image"
+	print("> Image")
 	try:
 		from PIL import Image
+		Image.MAX_IMAGE_PIXELS = None
 	except ImportError:
 		import Image
-	print "> ImageOps"
+	print("> ImageOps")
 	try:
 		from PIL import ImageOps
 	except ImportError:
 		import ImageOps
-	print "> ImageTk"
+	print("> ImageTk")
 	try:
 		from PIL import ImageTk
 	except ImportError:
 		import ImageTk
-	print "Done"
+	print("Done")
 except Exception as e:
 	#because windows closes the window
-	print e
+	print(e)
 	pause()
 	raise e
 
 if resize_height == 0:
 	resize_width = 0
 if resize_width < -1 or resize_height < -1:
-	print "Note: resize is invalid. Not resizing."
+	print("Note: resize is invalid. Not resizing.")
 	pause()
 	resize_width = 0
 
@@ -124,9 +131,9 @@ def clamp(x, a, b):
 
 class MyApp(Tk):
 	def getImages(self, dir):
-		print "Scanning " + dir
+		print("Scanning " + dir)
 		allImages = []
-		for i in os.listdir(dir):
+		for i in sorted(os.listdir(dir)):
 			b, e = os.path.splitext(i)
 			if e.lower() not in image_extensions: continue
 			allImages += [i]
@@ -147,29 +154,29 @@ class MyApp(Tk):
 
 		# If that didn't work, show a browse dialogue
 		if not len(infiles):
-			print "No images in the current directory. Please select a different directory."
-			self.inDir = tkFileDialog.askdirectory(parent=self, initialdir="/",title='Please select a directory')
+			print("No images in the current directory. Please select a different directory.")
+			self.inDir = tkinter.filedialog.askdirectory(parent=self, initialdir="/",title='Please select a directory')
 			if not len(self.inDir):
-				print "No directory selected. Exiting."
+				print("No directory selected. Exiting.")
 				pause()
 				raise SystemExit()
 			self.inDir = os.path.normpath(self.inDir)
 			infiles = self.getImages(self.inDir)
 			if not len(infiles):
-				print "No images found in " + self.inDir + ". Exiting."
+				print("No images found in " + self.inDir + ". Exiting.")
 				pause()
 				raise SystemExit()
-			print "Found", len(infiles), "images"
+			print("Found", len(infiles), "images")
 		else:
-			print "Found", len(infiles), "images in the current directory"
+			print("Found", len(infiles), "images in the current directory")
 
 		self.outDir = os.path.join(self.inDir, out_directory)
 
 		if not os.path.exists(self.outDir):
-			print "Creating output directory, " + self.outDir
+			print("Creating output directory, " + self.outDir)
 			os.makedirs(self.outDir)
 
-		print "Initializing GUI"
+		print("Initializing GUI")
 
 		self.grid_rowconfigure(0, weight=1)
 		self.grid_columnconfigure(0, weight=1)
@@ -245,7 +252,7 @@ class MyApp(Tk):
 
 		self.restrictSizes = IntVar()
 		self.inputs += [Checkbutton(self.controls, text="Perfect Pixel Ratio", variable=self.restrictSizes)]
-		self.inputs[-1].grid(row=0, column=8, sticky="nsew")
+		self.inputs[-1].grid(row=0, column=9, sticky="nsew")
 
 		self.imageLabel = Canvas(self, highlightthickness=0)
 		self.imageLabel.grid(row=0, column=0, sticky='nw', padx=0, pady=0)
@@ -261,9 +268,10 @@ class MyApp(Tk):
 		self.aspect[1].trace("w", self.on_aspect_changed)
 		self.restrictSizes.trace("w", self.on_option_changed)
 		self.restrictRatio.trace("w", self.on_aspect_changed)
-		self.bind('<space>', self.save_next)
+		#self.bind('<space>', self.save_next)
 		self.bind('d', self.next)
 		self.bind('a', self.previous)
+		self.bind('s', self.save)
 		self.c.bind('<ButtonPress-1>', self.on_mouse_down)
 		self.c.bind('<B1-Motion>', self.on_mouse_drag)
 		self.c.bind('<ButtonRelease-1>', self.on_mouse_up)
@@ -275,11 +283,11 @@ class MyApp(Tk):
 		self.bind('<Button-5>', self.on_mouse_scroll)
 		self.bind('<MouseWheel>', self.on_mouse_scroll)
 
-		print "Checking for existing crops"
+		print("Checking for existing crops")
 		#self.load_imgfile(allImages[0])
 		self.current = 0
 		while self.current < len(self.files) and os.path.exists(os.path.join(self.outDir, self.files[self.current])):
-			print "Skipping " + self.files[self.current] + ". Already cropped."
+			print("Skipping " + self.files[self.current] + ". Already cropped.")
 			self.current += 1
 		self.current += 1
 		self.previous()
@@ -378,7 +386,7 @@ class MyApp(Tk):
 
 	def copy(self):
 		c = "copy \"" + os.path.join(self.inDir, self.currentName) + "\" \"" + os.path.join(self.outDir, self.currentName) + "\""
-		print c
+		print(c)
 		shutil.copy(os.path.join(self.inDir, self.currentName), os.path.join(self.outDir, self.currentName))
 		#subprocess.Popen(c, shell=True)
 		#os.system(c)
@@ -386,14 +394,16 @@ class MyApp(Tk):
 
 	def resize(self):
 		if not (resize_width > 0):
-			print "Error: no resize specified. Not resizing"
+			print("Error: no resize specified. Not resizing")
 			return
 		c = "convert \"" + os.path.join(self.inDir, self.currentName) + "\""
-		c += " -resize \"" + str(resize_width) + "x" + str(resize_height) + ">\""
+		#c += " -resize \"" + str(resize_width) + "x" + str(resize_height) + ">\""
+		if (resize_width > 0):
+			c += " -resize \"" + str(resize_width) + "x" + str(resize_height) + ">\""
 		c += " \"" + os.path.join(self.outDir, self.currentName) + "\""
-		print c
+		print(c)
 		subprocess.Popen(c, shell=True)
-		print "Running"
+		print("Running")
 		#os.system(c)
 		self.next()
 
@@ -404,21 +414,36 @@ class MyApp(Tk):
 		if (resize_width > 0):
 			c += " -resize \"" + str(resize_width) + "x" + str(resize_height) + ">\""
 		c += " \"" + os.path.join(self.outDir, self.currentName) + "\""
-		print c
+		print(c)
 		subprocess.Popen(c, shell=True)
-		print "Running"
+		print("Running")
 		#os.system(c)
 		self.next()
+
+	def save(self, event=None):
+		box = self.getRealBox()
+		filename_l, file_extension_l = os.path.splitext(self.currentName)
+		currentName_l = filename_l + "-" + str(int(time.time())) + file_extension_l
+		c = "convert \"" + os.path.join(self.inDir, self.currentName) + "\""
+		c += " -crop " + str(box[2]-box[0]) + "x" + str(box[3]-box[1]) + "+" + str(box[0]) + "+" + str(box[1])
+		if (resize_width > 0):
+			c += " -resize \"" + str(resize_width) + "x" + str(resize_height) + ">\""
+		c += " \"" + os.path.join(self.outDir, currentName_l) + "\""
+		print(c)
+		subprocess.Popen(c, shell=True)
+		print("Running")
+
+
 
 	def load_imgfile(self, filename):
 		self.currentName = filename
 		fullFilename = os.path.join(self.inDir, filename)
-		print "Loading " + fullFilename
+		print("Loading " + fullFilename)
 		img = Image.open(fullFilename)
 
 		self.imageOrig = img
 		self.imageOrigSize = (img.size[0], img.size[1])
-		print "Image is " + str(self.imageOrigSize[0]) + "x" + str(self.imageOrigSize[1])
+		print("Image is " + str(self.imageOrigSize[0]) + "x" + str(self.imageOrigSize[1]))
 
 		basewidth = 512
 		wpercent = (basewidth/float(img.size[0]))
@@ -433,7 +458,7 @@ class MyApp(Tk):
 				img = img.copy()
 				img.thumbnail((basewidth,hsize), Image.NEAREST)
 		self.image = img
-		print "Resized preview"
+		print("Resized preview")
 
 		#self.geometry("1024x"+str(hsize + 100))
 		self.configure(relief='flat', background='gray')
@@ -519,7 +544,7 @@ class MyApp(Tk):
 			self.previewPhoto = ImageTk.PhotoImage(self.preview)
 			self.previewLabel.configure(image=self.previewPhoto)
 
-			print str(box[2]-box[0])+"x"+str(box[3]-box[1])+"+"+str(box[0])+"+"+str(box[1])
+			print(str(box[2]-box[0])+"x"+str(box[3]-box[1])+"+"+str(box[0])+"+"+str(box[1]))
 
 	def remove_focus(self, event=None):
 			self.focus()
@@ -555,13 +580,13 @@ class MyApp(Tk):
 				if self.test(): break
 		if dir == -1:
 			if self.cropIndex == 1:
-				print "At maximum"
+				print("At maximum")
 				return
 			while self.cropIndex > 1:
 				self.cropIndex -= 1
 				if self.test(): break
 
-		print self.cropIndex
+		print(self.cropIndex)
 
 		self.update_box(self.imageLabel)
 		self.update_preview(self.imageLabel)
